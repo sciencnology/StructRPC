@@ -1,6 +1,7 @@
 #ifndef SO_WRAPPER_H
 #define SO_WRAPPER_H
 
+#include <utility>
 #include <map>
 #include <string>
 #include <string_view>
@@ -18,8 +19,15 @@ using TCPProcessCoroutine = std::function<asio::awaitable<std::string>(std::stri
 using TCPProcessFunc = std::function<std::string(std::string_view)>;
 using ProcessFuncMap = std::map<std::string, std::map<std::string, ProcessFunc>>;
 using ProcessCoroutineMap = std::map<std::string, std::map<std::string, ProcessCoroutine>>;
-using TCPProcessCoroutineMap = std::map<std::string, std::map<std::string, TCPProcessCoroutine>>;
-using TCPProcessFuncMap = std::map<std::string, std::map<std::string, TCPProcessFunc>>;
+using TCPProcessCoroutineMap = std::map<std::string_view, TCPProcessCoroutine>;
+using TCPProcessFuncMap = std::map<std::string_view, TCPProcessFunc>;
+
+
+template <auto Addr>
+constexpr const char* FunctionPointerToString()
+{
+    return "";
+}
 
 class SoWrapper : util::Singleton<SoWrapper>
 {

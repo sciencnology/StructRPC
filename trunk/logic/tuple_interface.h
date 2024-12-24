@@ -2,35 +2,43 @@
 #include "../StructBuffer/trunk/macros.h"
 #include "../StructBuffer/trunk/serializer.hpp"
 #include "../StructBuffer/trunk/deserializer.hpp"
-#include "trait_helper.hpp"
+#include "trait_helper/func_name.hpp"
+#include "trait_helper/func_traits.hpp"
+#include "trait_helper/partial_apply.hpp"
+#include "data_struct_define.hpp"
 #include <tuple>
 #include <string_view>
 #include <boost/asio.hpp>
 
 namespace TupleInterface
 {
-    
-
-    template <typename F, bool IsCoroutine = true>
-    inline auto CommonFuncTemplate(F &&f, std::string_view input)
+    template <auto Func>
+    inline auto CommonCoroutineTemplate(std::string_view input) -> boost::asio::awaitable<std::string>
     {
-
-        typename trait_helper::function_helper::function_traits<F>::arguments_tuple input_struct;
+        typename trait_helper::function_helper::function_traits<decltype(Func)>::arguments_tuple input_struct;
+        using class_type = typename trait_helper::function_helper::function_traits<decltype(Func)>::class_type;
+        using return_type = typename trait_helper::function_helper::function_traits<decltype(Func)>::return_type;
         structbuf::deserializer::ParseFromSV(input_struct, input);
-        // auto ret = co_await std::apply([f = std::forward<F>(f)](auto &&...args)
-        //                                { co_return co_await f(args...); }, input_struct.data);
-        if constexpr (IsCoroutine) {
-            auto ret = co_await trait_helper::function_helper::apply_from_tuple(f, input_struct);
-        } else {
-            auto ret = trait_helper::function_helper::apply_from_tuple(f, input_struct);
-        }
-        
+        auto ret = co_await std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
+
         CommonParamStruct<decltype(ret)> output_struct{{std::move(ret)}};
-        if constexpr (IsCoroutine) {
-            co_return structbuf::serializer::SaveToString(output_struct);
-        } else {
-            return structbuf::serializer::SaveToString(output_struct);
-        }
-        
+
+        co_return structbuf::serializer::SaveToString(output_struct);
     }
+
+    template <auto Func>
+    inline auto CommonFuncTemplate(std::string_view input) -> std::string
+    {
+        typename trait_helper::function_helper::function_traits<decltype(Func)>::arguments_tuple input_struct;
+        using class_type = typename trait_helper::function_helper::function_traits<decltype(Func)>::class_type;
+        structbuf::deserializer::ParseFromSV(input_struct, input);
+        
+        auto ret = std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
+
+        CommonParamStruct<decltype(ret)> output_struct{{std::move(ret)}};
+
+        return structbuf::serializer::SaveToString(output_struct);
+    }
+
+
 }

@@ -2,6 +2,8 @@
 #include <type_traits>
 #include <vector>
 #include <functional>
+#include <boost/asio.hpp>
+#include "../../StructBuffer/trunk/utils/trait_helper.h"
 
 namespace trait_helper
 {
@@ -33,6 +35,7 @@ namespace trait_helper
         {
             using return_type = R;
             using arguments_tuple = std::tuple<Args...>;
+            using class_type = C;
         };
 
         // const 成员函数
@@ -41,6 +44,7 @@ namespace trait_helper
         {
             using return_type = R;
             using arguments_tuple = std::tuple<Args...>;
+            using class_type = C;
         };
 
         // std::function
@@ -74,8 +78,24 @@ namespace trait_helper
         }
 
 
+        template <typename F, typename Tuple, size_t... S>
+        typename function_traits<F>::return_type apply_tuple_to_coroutine_impl(F &&fn, Tuple &&t, std::index_sequence<S...>)
+        {
+            co_return co_await std::forward<F>(fn)(std::get<S>(std::forward<Tuple>(t))...);
+        }
+
+        template <typename F, typename Tuple>
+        typename function_traits<F>::return_type apply_from_tuple_to_coroutine(F &&fn, Tuple &&t)
+        {
+            std::size_t constexpr tSize = std::tuple_size<typename std::remove_reference<Tuple>::type>::value;
+            co_return co_await apply_tuple_impl(std::forward<F>(fn),
+                                    std::forward<Tuple>(t),
+                                    std::make_index_sequence<tSize>());
+        }
+
+
         template <typename F>
-        inline constexpr is_asio_coroutine = trait_helper::is_specialization_of_v<asio::awaitable, typename function_traits<F>::return_type>;
+        inline constexpr bool is_asio_coroutine = structbuf::trait_helper::is_specialization_of_v<typename function_traits<F>::return_type, boost::asio::awaitable>;
 
     }
 }
