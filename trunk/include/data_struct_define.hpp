@@ -15,10 +15,9 @@ struct CommonParamStruct
 struct TCPRequest
 {
     DEF_DATA_STUCT;
-    DEFINE_GET_FUNC_3(class_name, method, data);
+    DEFINE_GET_FUNC_2(path, data);
 
-    std::string class_name;
-    std::string method;
+    std::string path;
     std::string data;
 };
 

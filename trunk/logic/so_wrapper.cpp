@@ -35,10 +35,10 @@ void init_process_map(ProcessFuncMap &func_map, ProcessCoroutineMap &coroutine_m
 }
 
 // 不支持函数重载
-void init_tcp_process_map(ProcessFuncMap &func_map, TCPProcessCoroutineMap &coroutine_map)
-{
-    coroutine_map["Test"]["testStringOutputParam"] = [](std::string_view input) -> asio::awaitable<std::string>
-    {
-        co_return co_await TupleInterface::CommonFuncTemplate(&TestInterface::testTCP, input);
-    };
-}
+// void init_tcp_process_map(ProcessFuncMap &func_map, TCPProcessCoroutineMap &coroutine_map)
+// {
+//     coroutine_map["Test"]["testStringOutputParam"] = [](std::string_view input) -> asio::awaitable<std::string>
+//     {
+//         co_return co_await TupleInterface::CommonFuncTemplate(&TestInterface::testTCP, input);
+//     };
+// }

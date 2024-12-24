@@ -1,5 +1,7 @@
+#pragma once
 #ifndef CLIENT_BASE_H
 #define CLIENT_BASE_H
+#include <utility>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -9,7 +11,9 @@
 #include <thread>
 #include "nlohmann/json.hpp"
 #include "data_struct_define.hpp"
-#include "trait_helper.hpp"
+#include "trait_helper/func_name.hpp"
+#include "trait_helper/func_traits.hpp"
+#include "so_wrapper.h"
 
 namespace http = boost::beast::http;
 namespace asio = boost::asio;
@@ -46,9 +50,10 @@ public:
     asio::awaitable<std::string> make_tcp_request(std::string target, std::string tcp_request);
 
     template <typename F, typename... Args>
-    auto do_remote_request(std::string class_name, std::string method, F&& f, Args&& args...)
+    auto do_remote_request(F&& f, Args&&... args)
     {
-        TCPRequest tcp_request {class_name, method, std::make_tuple(args...)};
+        std::string path = std::string(trait_helper::func_name<F>());
+        TCPRequest tcp_request {path, std::make_tuple(args...)};
         std::string response_str = co_await make_tcp_request(host, structbuf::serializer::SaveToString(tcp_request));
         TCPResponse tcp_response;
         structbuf::deserializer::ParseFromSV(tcp_response, response_str);
@@ -61,5 +66,14 @@ public:
         co_return function_return_obj;
     }
 };
+
+class StructRPCBase
+{
+public:
+
+
+};
+
+
 
 #endif
