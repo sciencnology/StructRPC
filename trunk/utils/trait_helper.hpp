@@ -57,6 +57,8 @@ namespace trait_helper
         {
         };
 
+
+
         template <typename F, typename Tuple, size_t... S>
         decltype(auto) apply_tuple_impl(F &&fn, Tuple &&t, std::index_sequence<S...>)
         {
@@ -70,6 +72,10 @@ namespace trait_helper
                                     std::forward<Tuple>(t),
                                     std::make_index_sequence<tSize>());
         }
+
+
+        template <typename F>
+        inline constexpr is_asio_coroutine = trait_helper::is_specialization_of_v<asio::awaitable, typename function_traits<F>::return_type>;
 
     }
 }

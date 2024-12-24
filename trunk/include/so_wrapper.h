@@ -15,9 +15,11 @@ using json = nlohmann::json;
 using ProcessFunc = std::function<std::string(json &)>;
 using ProcessCoroutine = std::function<asio::awaitable<std::string>(json &)>;
 using TCPProcessCoroutine = std::function<asio::awaitable<std::string>(std::string_view)>;
+using TCPProcessFunc = std::function<std::string(std::string_view)>;
 using ProcessFuncMap = std::map<std::string, std::map<std::string, ProcessFunc>>;
 using ProcessCoroutineMap = std::map<std::string, std::map<std::string, ProcessCoroutine>>;
 using TCPProcessCoroutineMap = std::map<std::string, std::map<std::string, TCPProcessCoroutine>>;
+using TCPProcessFuncMap = std::map<std::string, std::map<std::string, TCPProcessFunc>>;
 
 class SoWrapper : util::Singleton<SoWrapper>
 {

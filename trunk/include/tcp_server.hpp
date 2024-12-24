@@ -50,7 +50,6 @@ private:
     {
         try
         {
-            char data[1024];
             for (;;)
             {
                 size_t total_size;
@@ -61,15 +60,15 @@ private:
                 std::memcpy(request_str, &total_size, sizeof(size_t));
 
                 co_await async_read(socket, buffer::mutable_buffer(request_str.data() + sizeof(size_t), total_size - sizeof(size_t)), use_awaitable);
+                
+                std::cout << "Received size: " << total_size << std::endl;
                 TCPRequest tcp_request;
                 structbuf::deserializer::ParseFromSV(tcp_request, request_str);
 
                 TCPResponse tcp_response = co_await process_request(std::move(tcp_request));
-
-                // 将接收到的数据打印并回显
-                std::cout
-                    << "Received size: " << total_size << std::endl;
-                co_await async_write(socket, buffer(data, n), use_awaitable);
+                std::string response_str = structbuf::serializer::SaveToString(tcp_response);
+                
+                co_await async_write(socket, buffer(response_str, response_str.size()), use_awaitable);
             }
         }
         catch (std::exception &e)
