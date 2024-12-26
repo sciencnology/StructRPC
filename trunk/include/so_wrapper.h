@@ -22,29 +22,4 @@ using ProcessCoroutineMap = std::map<std::string, std::map<std::string, ProcessC
 using TCPProcessCoroutineMap = std::map<std::string_view, TCPProcessCoroutine>;
 using TCPProcessFuncMap = std::map<std::string_view, TCPProcessFunc>;
 
-
-template <auto Addr>
-constexpr const char* FunctionPointerToString()
-{
-    return "";
-}
-
-class SoWrapper : util::Singleton<SoWrapper>
-{
-public:
-private:
-};
-
-#ifdef __cplusplus
-extern "C"
-{
 #endif
-
-    void init_process_map(ProcessFuncMap &func_map, ProcessCoroutineMap &coroutine_map);
-    void init_tcp_process_map(ProcessFuncMap &func_map, TCPProcessCoroutineMap &coroutine_map);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // SO_WRAPPER_H

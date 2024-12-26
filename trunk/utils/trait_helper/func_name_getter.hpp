@@ -4,15 +4,17 @@
 #include <array>   // std::array
 #include <utility> // std::index_sequence
 #include <iostream>
+#include "type_name_getter.hpp"
 
-
+namespace struct_rpc
+{
 namespace trait_helper
 {
-    template <std::size_t...Idxs>
-    constexpr auto substring_as_array(std::string_view str, std::index_sequence<Idxs...>)
-    {
-        return std::array{str[Idxs]..., '\n'};
-    }
+    // template <std::size_t...Idxs>
+    // constexpr auto substring_as_array(std::string_view str, std::index_sequence<Idxs...>)
+    // {
+    //     return std::array{str[Idxs]...};
+    // }
 
     template <auto Addr>
     constexpr auto func_name_array()
@@ -49,12 +51,36 @@ namespace trait_helper
     };
 
     template <auto Addr>
-    constexpr auto func_name() -> std::string_view
+    constexpr auto func_name()
     {
         constexpr auto& value = func_name_holder<Addr>::value;
-        return std::string_view{value.data(), value.size()};
+        return value;
     }
 
 
+    template <typename Type, std::size_t... sizes>
+    constexpr auto concatenate_arrays(const std::array<Type, sizes>&... arrays)
+    {
+        std::array<Type, (sizes + ...)> result;
+        std::size_t index{};
+
+        ((std::copy_n(arrays.begin(), sizes, result.begin() + index), index += sizes), ...);
+
+        return result;
+    }
+
+    template <auto Addr>
+    struct struct_rpc_func_path_holder {
+        static inline constexpr std::array<char, 2> splitter {'-', '-'};
+        static inline constexpr auto value = concatenate_arrays(func_name<Addr>(), splitter, get_type_name<decltype(Addr)>());
+    };
+
+    template <auto Addr>
+    constexpr auto struct_rpc_func_path() -> std::string_view
+    {
+        constexpr auto& value = struct_rpc_func_path_holder<Addr>::value;
+        return std::string_view(value.data(), value.size());
+    }
 }
 
+}

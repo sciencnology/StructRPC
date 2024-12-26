@@ -11,7 +11,6 @@
 #include <vector>
 #include <atomic>
 #include "util.hpp"
-#include "so_wrapper.h"
 
 namespace asio = boost::asio;
 namespace beast = boost::beast;

@@ -2,9 +2,13 @@
 #include <type_traits>
 #include <tuple>
 #include <functional>
-
+namespace struct_rpc
+{
 namespace trait_helper
 {
+    /**
+     * @brief: partial function application,绑定函数的前N个参数并返回接受后续参数的函数
+    */
     template <typename F, typename... Args>
     class partial_t {
     public:
@@ -28,4 +32,4 @@ namespace trait_helper
         return partial_t<Fn, Args...>(std::forward<Fn>(fn), std::forward<Args>(args)...);
     }
 }
-
+}

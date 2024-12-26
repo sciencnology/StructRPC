@@ -1,14 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 
 # 项目名称和版本
-project(MyProject VERSION 1.0)
-set(CMAKE_CXX_COMPILER "/usr/bin/g++-13")
+project(ExampleStructRpc VERSION 1.0)
+set(CMAKE_CXX_COMPILER "/home/uranus/gcc_13.2.0/bin/g++")
 # 指定 C 标准
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+add_compile_options(-g)
 # 添加 include 目录
-include_directories(/usr/local/include include sdk logic utils ./StructBuuffer/trunk)
+include_directories(/usr/local/include include sdk logic utils ./ ./StructBuuffer/trunk)
 
 # 设置源文件目录
 set(SRC_DIRS logic src)

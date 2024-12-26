@@ -8,10 +8,14 @@
 #include <thread>
 
 #include "common_define.hpp"
-#include "trait_helper/trait_helper.hpp"
+#include "utils/trait_helper/trait_helper.hpp"
 
-using namespace boost::asio;
+namespace struct_rpc
+{
 
+/**
+ * @class TCPServer: 基于C++20协程简单封装boost::asio的多线程异步TCP服务器 
+*/
 class TCPServer
 {
     using tcp = ip::tcp;
@@ -119,7 +123,6 @@ private:
             {
                 tcp::socket socket = co_await acceptor.async_accept(use_awaitable);
                 std::cout << "New client connected!" << std::endl;
-                // todo: 处理unhandled exception
                 co_spawn(io_ctx, handle_client(std::move(socket)), [](std::exception_ptr e) {
                     try
                     {
@@ -146,10 +149,12 @@ private:
     void RegisterSingleFunction(TCPProcessCoroutineMap& process_coroutine_map, TCPProcessFuncMap& process_func_map)
     {
         if constexpr (trait_helper::is_asio_coroutine<decltype(Func)>) {
-            process_coroutine_map[trait_helper::func_name<Func>()] = common_define::CommonCoroutineTemplate<Func>;
+            process_coroutine_map[trait_helper::struct_rpc_func_path<Func>()] = common_define::CommonCoroutineTemplate<Func>;
         } else {
-            process_func_map[trait_helper::func_name<Func>()] = common_define::CommonFuncTemplate<Func>;
+            process_func_map[trait_helper::struct_rpc_func_path<Func>()] = common_define::CommonFuncTemplate<Func>;
         }
     }
 
 };
+
+}
