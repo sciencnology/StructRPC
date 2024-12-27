@@ -4,3 +4,4 @@
 #include "tcp_connection.hpp"
 #include "utils/util.hpp"
 #include "utils/trait_helper/trait_helper.hpp"
+#include "utils/logger.hpp"

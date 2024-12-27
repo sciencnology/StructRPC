@@ -22,12 +22,15 @@ public:
     virtual std::string make_sync_tcp_request(std::string tcp_request) { throw std::runtime_error("not implemented"); }
     virtual asio::awaitable<std::string> make_async_tcp_request(std::string tcp_request) { throw std::runtime_error("not implemented"); }
     
+    /**
+     * @brief: 进行一次同步RPC调用
+    */
     template <auto Func, typename... Args>
     auto sync_struct_rpc_request(Args&&... args) {
         // step 1. 提取出RPC函数的参数类型列表，并完美转发输入的参数列表构造对应类型的tuple
         using param_tuple_type = typename trait_helper::function_traits<decltype(Func)>::arguments_tuple;
         param_tuple_type param_tuple = std::make_tuple(std::forward<Args>(args)...);
-
+        std::cout << std::string(trait_helper::struct_rpc_func_path<Func>()) << std::endl;
         // step 2. 提取出RCP调用路径，和序列化后的参数tuple构造TCP请求对象
         common_define::TCPRequest tcp_request {std::string(trait_helper::struct_rpc_func_path<Func>()), structbuf::serializer::SaveToString(param_tuple)};
 
@@ -110,7 +113,6 @@ public:
     asio::awaitable<void> async_connect()
     {
         tcp::resolver resolver(s.get_executor());
-        // auto co_await resolver.async_resolve(host, port, asio::use_awaitable);
         co_await asio::async_connect(s, resolver.resolve(host, port), asio::use_awaitable);
     }
 

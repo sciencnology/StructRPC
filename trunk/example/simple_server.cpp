@@ -7,21 +7,13 @@
 
 int main()
 {
-    try
-    {
-        TCPServer server(2, 8080);
-        server.RegisterServerFunctions<&TCPTestServer::add, 
-            &TCPTestServer::coro, 
-            &free_add, 
-            &TCPTestServer::static_sub, 
-            &TCPTestServer::generic_add_various_params<int, int, double>,
-            &TCPTestServer::generic_add_various_params<int, int>>();
-        server.Start();
-    }
-    catch (std::exception &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+    TCPServer server(/* thread_num */ 2, /* listen_port */ 8080);
+    server.RegisterServerFunctions<&ExampleRPCClass::add, 
+        &ExampleRPCClass::coro, 
+        &free_add, 
+        &ExampleRPCClass::generic_add<int>, 
+        &ExampleRPCClass::generic_add_various_params<int, int, double>,
+        &ExampleRPCClass::generic_add_various_params<int, int>>();
+    server.Start();
+    return 0;
 }

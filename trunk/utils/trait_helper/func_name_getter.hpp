@@ -10,21 +10,16 @@ namespace struct_rpc
 {
 namespace trait_helper
 {
-    // template <std::size_t...Idxs>
-    // constexpr auto substring_as_array(std::string_view str, std::index_sequence<Idxs...>)
-    // {
-    //     return std::array{str[Idxs]...};
-    // }
 
     template <auto Addr>
     constexpr auto func_name_array()
     {
         #if defined(__clang__)
-            constexpr auto prefix   = std::string_view{"[Addr = &"};
+            constexpr auto prefix   = std::string_view{"[Addr = "};
             constexpr auto suffix   = std::string_view{"]"};
             constexpr auto function = std::string_view{__PRETTY_FUNCTION__};
         #elif defined(__GNUC__)
-            constexpr auto prefix   = std::string_view{"with auto Addr = &"};
+            constexpr auto prefix   = std::string_view{"with auto Addr = "};
             constexpr auto suffix   = std::string_view{"]"};
             constexpr auto function = std::string_view{__PRETTY_FUNCTION__};
         #elif defined(_MSC_VER)

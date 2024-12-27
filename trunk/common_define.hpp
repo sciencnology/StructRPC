@@ -19,8 +19,7 @@ namespace struct_rpc
         template <typename... Args>
         struct CommonParamStruct
         {
-            DEF_DATA_STUCT;
-            DEFINE_GET_FUNC_1(data);
+            DEFINE_STRUCT_BUFFER_MEMBERS(data);
 
             std::tuple<Args...> data;
         };
@@ -42,8 +41,7 @@ namespace struct_rpc
         */
         struct TCPRequest
         {
-            DEF_DATA_STUCT;
-            DEFINE_GET_FUNC_2(path, data);
+            DEFINE_STRUCT_BUFFER_MEMBERS(path, data);
 
             std::string path;
             std::string data;
@@ -56,8 +54,7 @@ namespace struct_rpc
         */
         struct TCPResponse
         {
-            DEF_DATA_STUCT;
-            DEFINE_GET_FUNC_2(retcode, data);
+            DEFINE_STRUCT_BUFFER_MEMBERS(retcode, data);
 
             int32_t retcode;
             std::string data;
