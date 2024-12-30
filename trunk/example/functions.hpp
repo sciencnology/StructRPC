@@ -5,7 +5,7 @@
 using namespace struct_rpc;
 
 /**
- * 支持注册类的成员函数，但是要求对应的类必须是单例类，即派生自以下基类之一：
+ * 支持注册类的成员函数，但是目前要求对应的类必须是单例类，即派生自以下基类之一：
  * * util::Singleton<T> 全局单例，所有server线程共享同一个实例，需要注意线程同步问题
  * * util::ThreadLocalSingleton<T> 线程局部单例，每个server线程维护一个实例
 */
@@ -42,7 +42,7 @@ public:
     }
 
     /**
-     * 甚至支持可变数量模板参数
+     * 支持可变数量模板参数
     */
     template<typename... Args>
     std::common_type_t<Args...> generic_add_various_params(Args... args) {
@@ -57,9 +57,12 @@ public:
     }
 
     /**
-     * 支持基于boost::asio的C++20协程
+     * 支持基于boost::asio的C++20协程,e.g.:
     */
-    awaitable<int> coro(int i) {
+    awaitable<int> wait3s_and_echo(int i) {
+        steady_timer timer(co_await this_coro::executor);
+        timer.expires_after(std::chrono::seconds(3));
+        co_await timer.async_wait(use_awaitable);
         co_return i;
     }
 
@@ -86,6 +89,9 @@ inline int32_t free_add(int32_t a, int32_t b) {
 }
 
 namespace ExampleRPCNamespace {
+    /**
+     * 支持自定义namespace下的函数
+    */
     inline int32_t add(int32_t a, int32_t b) {
         return a + b;
     }

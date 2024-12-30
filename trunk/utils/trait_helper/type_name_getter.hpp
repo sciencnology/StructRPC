@@ -49,6 +49,9 @@ struct type_name_holder {
   static inline constexpr auto value = type_name_array<T>();
 };
 
+/**
+ * @brief: 编译期获取某个类型的名字，原理是使用该类型特化一个模板函数，并对编译器生成的__PRETTY_FUNCTION__宏做裁剪
+*/
 template <typename T>
 constexpr auto get_type_name()
 {

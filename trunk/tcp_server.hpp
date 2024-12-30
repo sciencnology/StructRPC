@@ -2,7 +2,7 @@
 #include <utility>
 #include <boost/asio.hpp>
 #include <boost/asio/awaitable.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>  // boost requirement: 1.80.0
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -16,9 +16,8 @@
 
 namespace struct_rpc
 {
-
 /**
- * @class TCPServer: 基于C++20协程封装的boost::asio的多线程异步TCP服务器 
+ * @class TCPServer: 基于C++20协程封装boost::asio的多线程异步TCP服务器 
 */
 class TCPServer
 {
@@ -27,7 +26,6 @@ class TCPServer
     using TCPProcessFunc = std::function<std::string(std::string_view)>;
     using TCPProcessCoroutineMap = std::map<std::string_view, TCPProcessCoroutine>;
     using TCPProcessFuncMap = std::map<std::string_view, TCPProcessFunc>;
-
 public:
     TCPServer(uint32_t thread_num, uint32_t port = 8080) : thread_num(thread_num), port(port), thread_pool(thread_num)
     {
@@ -66,7 +64,7 @@ private:
     */
     awaitable<common_define::TCPResponse> process_request(common_define::TCPRequest tcp_request)
     {
-        common_define::TCPResponse tcp_response;
+        common_define::TCPResponse tcp_response {0, ""};
         auto coroutine_path_iter = process_coroutine_map.find(tcp_request.path);
         // C++20标准无法统一协程和普通函数的调用，故放在两个map里分别查询和调用
         if (coroutine_path_iter != process_coroutine_map.end())
@@ -75,8 +73,7 @@ private:
             tcp_response.data = co_await func(tcp_request.data);
         } else {
             auto func_path_iter = process_function_map.find(tcp_request.path);
-            if (func_path_iter != process_function_map.end())
-            {
+            if (func_path_iter != process_function_map.end()) {
                 auto& func = func_path_iter->second;
                 tcp_response.data = func(tcp_request.data);
             } else {
@@ -88,19 +85,57 @@ private:
     };
 
     /**
-     * @brief: 用于处理单个 TCP 客户端连接的协程
-     * @todo: 管理协程的生命周期，超时自动退出，从而实现连接池
+     * @brief: 进行一个附带超时时间的异步操作。如果超时则关闭socket并返回false
     */
-    awaitable<void> handle_client(tcp::socket socket)
+    awaitable<std::pair<bool, std::string>> async_operation_with_timeout(auto&& async_op, tcp::socket& socket, uint32_t timeout_seconds) {
+        using namespace boost::asio::experimental::awaitable_operators;
+        auto executor = co_await this_coro::executor;
+        steady_timer timer(executor);
+        timer.expires_after(std::chrono::seconds(timeout_seconds));
+        // awaitable重载了operator ||, 下面任何一个异步操作完成都会返回，并取消另一个。
+        auto result = co_await (std::forward<decltype(async_op)>(async_op) || timer.async_wait(use_awaitable));
+        if (result.index() == 0) {
+            co_return std::pair{true, ""};
+        } else {
+            socket.cancel();
+            co_return std::pair{false, "timed out"};
+        }
+    }
+
+    /**
+     * @brief: 用于处理单个 TCP 客户端连接的协程。客户端达到超时时间且无请求会自动关闭，节省服务器资源。
+    */
+    awaitable<void> handle_client(tcp::socket socket, uint32_t timeout_seconds = 5)
     {
+        auto remote_endpoint = socket.remote_endpoint();
+        std::string remote_info = std::format("host={}, port={}", remote_endpoint.address().to_string(),  std::to_string(remote_endpoint.port()));
+        LOG("connected with client {}", remote_info);
         for (;;)
         {
+            // step 1. 读取TCP请求序列化的头部（包含整个请求包长度信息）
             size_t total_size;
-            co_await async_read(socket, asio::mutable_buffer(&total_size, sizeof(size_t)), use_awaitable);
+            if (auto [succ, msg] = co_await async_operation_with_timeout(
+                async_read(socket, asio::mutable_buffer(&total_size, sizeof(size_t)), use_awaitable),
+                socket,
+                timeout_seconds
+            ); !succ) {
+                LOG("client {} async read msg head failed with {}, destroy this corotine", remote_info, msg);
+                co_return;
+            }
+
+            // step 2. 读取整个TCP请求结构体
             std::string request_str(total_size + sizeof(size_t), '\0');
             std::memcpy(request_str.data(), &total_size, sizeof(size_t));
-            co_await async_read(socket, asio::mutable_buffer(request_str.data() + sizeof(size_t), total_size), use_awaitable);
+            if (auto [succ, msg] = co_await async_operation_with_timeout(
+                async_read(socket, asio::mutable_buffer(request_str.data() + sizeof(size_t), total_size), use_awaitable),
+                socket,
+                timeout_seconds
+            ); !succ) {
+                LOG("client {} async read msg body failed with {}, destroy this corotine",remote_info, msg);
+                co_return;
+            }
             
+            // step 3. 根据请求中编码的path调用对应的RPC函数
             common_define::TCPResponse tcp_response;
             try
             {
@@ -114,8 +149,16 @@ private:
                 tcp_response.retcode = static_cast<int32_t>(common_define::RetCode::RET_SERVER_EXCEPTION);
             }
             
+            // step 4. 写回调用结果
             std::string response_str = structbuf::serializer::SaveToString(tcp_response);
-            co_await async_write(socket, asio::buffer(response_str, response_str.size()), use_awaitable);
+            if (auto [succ, msg] = co_await async_operation_with_timeout(
+                async_write(socket, asio::buffer(response_str, response_str.size()), use_awaitable),
+                socket,
+                timeout_seconds
+            ); !succ) {
+                LOG("client {} async write response failed with {}, destroy this corotine",remote_info, msg);
+                co_return;
+            }
         }
     }
 
@@ -124,8 +167,9 @@ private:
     */
     awaitable<void> acceptor_coroutine(tcp::acceptor acceptor)
     {
-        try {
-            for (;;) {
+        for (;;) {
+            try
+            {
                 tcp::socket socket = co_await acceptor.async_accept(use_awaitable);
                 co_spawn(io_ctx, handle_client(std::move(socket)), [](std::exception_ptr e) {
                     try {
@@ -135,11 +179,9 @@ private:
                         LOG("handle_client exception {}, close connection", e.what());
                     }
                 });
+            } catch (std::exception &e) {
+                LOG("accept with exception {}, skip", e.what());
             }
-        }
-        catch (std::exception &e)
-        {
-            LOG("acceptor exception {}, close connection", e.what());
         }
     }
 
@@ -161,7 +203,7 @@ private:
 
 private:
     io_context io_ctx;  // asio io_context
-    uint32_t thread_num = 0;    // server框架中不区分IO和工作线程，所有阻塞操作全部采用协程的形式管理
+    uint32_t thread_num = 0;    // server框架中不区分IO和工作线程，所有IO和其他阻塞全部采用协程异步进行
     uint32_t port = 0;
     boost::asio::thread_pool thread_pool;
     TCPProcessCoroutineMap process_coroutine_map;

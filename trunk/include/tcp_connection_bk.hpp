@@ -65,6 +65,9 @@ public:
     }
 };
 
+/**
+ * 
+*/
 class SyncTCPConnection : public TCPConnectionBase
 {
 private:
@@ -76,8 +79,16 @@ public:
         connect();
     }
 
+    bool connected()
+    {
+        return s.is_open();
+    }
+
     void connect()
     {
+        if (connected()) {
+            return;
+        }
         tcp::resolver resolver(io_context);
         boost::asio::connect(s, resolver.resolve(host, port));
     }

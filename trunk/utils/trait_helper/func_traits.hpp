@@ -76,5 +76,19 @@ namespace trait_helper
     template <typename F>
     concept is_member_function = requires { typename function_traits<F>::class_type; };
 
+    template <typename F>
+    struct rpc_return_type_getter {
+        using type = typename function_traits<F>::return_type;
+    };
+
+    template <typename F>
+        requires is_asio_coroutine<F>
+    struct rpc_return_type_getter<F> {
+        using type = typename function_traits<F>::return_type::value_type;
+    };
+
+    // template <typename F>
+    // using rpc_return_type_getter_v = typename rpc_return_type_getter::type;
+
 }
 }

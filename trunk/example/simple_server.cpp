@@ -9,7 +9,7 @@ int main()
 {
     TCPServer server(/* thread_num */ 2, /* listen_port */ 8080);
     server.RegisterServerFunctions<&ExampleRPCClass::add, 
-        &ExampleRPCClass::coro, 
+        &ExampleRPCClass::wait3s_and_echo, 
         &free_add, 
         &ExampleRPCClass::generic_add<int>, 
         &ExampleRPCClass::generic_add_various_params<int, int, double>,

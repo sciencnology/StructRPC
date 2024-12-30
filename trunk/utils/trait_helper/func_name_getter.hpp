@@ -10,7 +10,6 @@ namespace struct_rpc
 {
 namespace trait_helper
 {
-
     template <auto Addr>
     constexpr auto func_name_array()
     {
@@ -45,6 +44,9 @@ namespace trait_helper
         static inline constexpr auto value = func_name_array<Addr>();
     };
 
+    /**
+     * @brief: 编译期获取某个函数的名字，原理是使用该函数作为非类型参数特化一个模板函数，并对编译器生成的__PRETTY_FUNCTION__宏做裁剪
+    */
     template <auto Addr>
     constexpr auto func_name()
     {
@@ -53,6 +55,9 @@ namespace trait_helper
     }
 
 
+    /**
+     * @brief: 编译期拼接多个std::array
+    */
     template <typename Type, std::size_t... sizes>
     constexpr auto concatenate_arrays(const std::array<Type, sizes>&... arrays)
     {

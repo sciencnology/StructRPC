@@ -56,7 +56,7 @@ namespace struct_rpc
         {
             DEFINE_STRUCT_BUFFER_MEMBERS(retcode, data);
 
-            int32_t retcode;
+            int32_t retcode = 0;
             std::string data;
         };
 
@@ -71,11 +71,16 @@ namespace struct_rpc
         inline auto CommonCoroutineTemplate(std::string_view input) -> boost::asio::awaitable<std::string>
         {
             typename trait_helper::function_traits<decltype(Func)>::arguments_tuple input_struct;
-            using class_type = typename trait_helper::function_traits<decltype(Func)>::class_type;
             structbuf::deserializer::ParseFromSV(input_struct, input);
-            auto ret = co_await std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
-
-            co_return structbuf::serializer::SaveToString(ret);
+            if constexpr (trait_helper::is_member_function<decltype(Func)>) {
+                using class_type = typename trait_helper::function_traits<decltype(Func)>::class_type;
+                static_assert(!std::is_base_of_v<util::ThreadLocalSingleton<class_type>, class_type>, "you cannot use coroutine with ThreadLocalSingleton");
+                auto ret = co_await std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
+                co_return structbuf::serializer::SaveToString(ret);
+            } else {
+                auto ret = co_await std::apply(Func, input_struct);
+                co_return structbuf::serializer::SaveToString(ret);
+            }
         }
 
         /**
