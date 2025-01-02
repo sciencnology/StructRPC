@@ -9,6 +9,7 @@ int main(int argc, char* argv[])
     uint32_t thread_num = std::stoi(argv[1]);
     uint32_t concurrency = std::stoi(argv[2]);
     uint32_t seconds = std::stoi(argv[3]);
+    const char* port = argv[4];
 
     BenchmarkRecorder recorder;
     io_context ioc;
@@ -17,7 +18,7 @@ int main(int argc, char* argv[])
     std::atomic<bool> need_stop = false;
     for (uint32_t i = 0; i < concurrency; ++i) {
         co_spawn(ioc, [&]() -> awaitable<void> {
-            std::unique_ptr<TCPConnectionBase> async_connection_ptr = std::make_unique<AsyncTCPConnection>("127.0.0.1", "8080", ioc);
+            std::unique_ptr<TCPConnectionBase> async_connection_ptr = std::make_unique<AsyncTCPConnection>("127.0.0.1", port, ioc);
             while (!need_stop.load(std::memory_order_acquire)) {
                 TimerRaii timer([&](double milliseconds)
                             { recorder.add(milliseconds); });

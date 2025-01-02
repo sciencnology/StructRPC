@@ -15,11 +15,12 @@ int main(int argc, char* argv[])
     BenchmarkRecorder recorder;
     uint32_t thread_num = std::stoi(argv[1]);
     uint32_t seconds = std::stoi(argv[2]);
+    const char* port = argv[3];
     std::vector<std::jthread> client_threads;
 
     for (uint32_t i = 0; i < thread_num; ++i) {
         client_threads.emplace_back([&](std::stop_token stop_token){
-            std::unique_ptr<TCPConnectionBase> sync_connection_ptr = std::make_unique<SyncTCPConnection>("127.0.0.1", "8080");
+            std::unique_ptr<TCPConnectionBase> sync_connection_ptr = std::make_unique<SyncTCPConnection>("127.0.0.1", port);
             while (!stop_token.stop_requested()) {
                 TimerRaii timer([&](double milliseconds)
                             { recorder.add(milliseconds); });
