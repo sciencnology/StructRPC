@@ -48,12 +48,11 @@ namespace trait_helper
      * @brief: 编译期获取某个函数的名字，原理是使用该函数作为非类型参数特化一个模板函数，并对编译器生成的__PRETTY_FUNCTION__宏做裁剪
     */
     template <auto Addr>
-    constexpr auto func_name()
+    constexpr auto get_func_name()
     {
         constexpr auto& value = func_name_holder<Addr>::value;
         return value;
     }
-
 
     /**
      * @brief: 编译期拼接多个std::array
@@ -72,7 +71,7 @@ namespace trait_helper
     template <auto Addr>
     struct struct_rpc_func_path_holder {
         static inline constexpr std::array<char, 2> splitter {'-', '-'};
-        static inline constexpr auto value = concatenate_arrays(func_name<Addr>(), splitter, get_type_name<decltype(Addr)>());
+        static inline constexpr auto value = concatenate_arrays(get_func_name<Addr>(), splitter, get_type_name<decltype(Addr)>());
     };
 
     template <auto Addr>
