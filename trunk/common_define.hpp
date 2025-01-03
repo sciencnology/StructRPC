@@ -19,8 +19,6 @@ namespace struct_rpc
         template <typename... Args>
         struct CommonParamStruct
         {
-            DEFINE_STRUCT_BUFFER_MEMBERS(data);
-
             std::tuple<Args...> data;
         };
 
@@ -41,8 +39,6 @@ namespace struct_rpc
         */
         struct TCPRequest
         {
-            DEFINE_STRUCT_BUFFER_MEMBERS(path, data);
-
             std::string path;
             std::string data;
         };
@@ -54,8 +50,6 @@ namespace struct_rpc
         */
         struct TCPResponse
         {
-            DEFINE_STRUCT_BUFFER_MEMBERS(retcode, data);
-
             int32_t retcode = 0;
             std::string data;
         };

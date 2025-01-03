@@ -61,6 +61,9 @@ public:
         return function_return_obj;
     }
 
+    /**
+     * @brief: 进行一次异步RPC调用
+    */
     template <auto Func, typename... Args>
     auto async_struct_rpc_request(Args&&... args) 
         -> awaitable<typename trait_helper::rpc_return_type_getter<decltype(Func)>::type>

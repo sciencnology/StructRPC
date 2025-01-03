@@ -103,7 +103,7 @@ private:
     }
 
     /**
-     * @brief: 用于处理单个 TCP 客户端连接的协程。客户端达到超时时间且无请求会自动关闭，节省服务器资源。
+     * @brief: 用于处理单个 TCP 客户端连接的协程。客户端达到超时时间且无请求会关闭，实现超时自动退出的连接池
     */
     awaitable<void> handle_client(tcp::socket socket, uint32_t timeout_seconds = 5)
     {
