@@ -20,6 +20,7 @@ namespace trait_helper
     {
         using return_type = R;
         using arguments_tuple = std::tuple<Args...>;
+        using decayed_arguments_tuple = std::tuple<std::decay_t<Args>...>;
     };
 
     // specialization for 普通函数
@@ -28,6 +29,7 @@ namespace trait_helper
     {
         using return_type = R;
         using arguments_tuple = std::tuple<Args...>;
+        using decayed_arguments_tuple = std::tuple<std::decay_t<Args>...>;
     };
 
     // specialization for 成员函数
@@ -36,6 +38,7 @@ namespace trait_helper
     {
         using return_type = R;
         using arguments_tuple = std::tuple<Args...>;
+        using decayed_arguments_tuple = std::tuple<std::decay_t<Args>...>;
         using class_type = C;
     };
 
@@ -45,6 +48,7 @@ namespace trait_helper
     {
         using return_type = R;
         using arguments_tuple = std::tuple<Args...>;
+        using decayed_arguments_tuple = std::tuple<std::decay_t<Args>...>;
         using class_type = C;
     };
 
@@ -54,6 +58,7 @@ namespace trait_helper
     {
         using return_type = R;
         using arguments_tuple = std::tuple<Args...>;
+        using decayed_arguments_tuple = std::tuple<std::decay_t<Args>...>;
     };
 
     // specialization for Lambda
@@ -90,5 +95,21 @@ namespace trait_helper
     // template <typename F>
     // using rpc_return_type_getter_v = typename rpc_return_type_getter::type;
 
+
+    template <typename T>
+    constexpr bool is_non_const_lvalue_reference() {
+        return std::is_lvalue_reference_v<T> && !std::is_const_v<std::remove_reference_t<T>>;
+    }
+    template <typename Tuple>
+    struct has_reference;
+    template <typename... Args>
+    struct has_reference<std::tuple<Args...>> {
+        static constexpr bool value = (is_non_const_lvalue_reference<Args>() || ...);
+    };
+    template <typename F>
+    constexpr bool is_func_containes_reference_param() {
+        using arguments_tuple = typename function_traits<F>::arguments_tuple;
+        return has_reference<arguments_tuple>::value;
+    }
 }
 }

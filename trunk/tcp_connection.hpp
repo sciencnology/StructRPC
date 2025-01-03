@@ -30,7 +30,7 @@ public:
     template <auto Func, typename... Args>
     auto sync_struct_rpc_request(Args&&... args) {
         // step 1. 提取出RPC函数的参数类型列表，并完美转发输入的参数列表构造对应类型的tuple
-        using param_tuple_type = typename trait_helper::function_traits<decltype(Func)>::arguments_tuple;
+        using param_tuple_type = typename trait_helper::function_traits<decltype(Func)>::decayed_arguments_tuple;
         param_tuple_type param_tuple = std::make_tuple(std::forward<Args>(args)...);
         // step 2. 提取出RCP调用路径，和序列化后的参数tuple构造TCP请求对象
         common_define::TCPRequest tcp_request {std::string(trait_helper::struct_rpc_func_path<Func>()), structbuf::serializer::SaveToString(param_tuple)};
@@ -55,10 +55,22 @@ public:
         }
 
         // step 4. 从TCP响应对象中提取出RCP的返回结果
+        common_define::TCPResponse::RespnseData rsp_data;
+        structbuf::deserializer::ParseFromSV(rsp_data, tcp_response.data);
+        if constexpr (trait_helper::is_func_containes_reference_param<decltype(Func)>()) {
+            structbuf::deserializer::ParseFromSV(param_tuple, rsp_data.params);
+            tupleAssign(param_tuple, args...);
+        }
+        
         using ReturnType = typename trait_helper::rpc_return_type_getter<decltype(Func)>::type;
-        ReturnType function_return_obj;
-        structbuf::deserializer::ParseFromSV(function_return_obj, tcp_response.data);
-        return function_return_obj;
+        if constexpr (!std::is_same_v<ReturnType, void>) {
+            ReturnType function_return_obj;
+            structbuf::deserializer::ParseFromSV(function_return_obj, rsp_data.ret);
+            return function_return_obj;
+        } else {
+            return;
+        }
+        
     }
 
     /**
@@ -68,7 +80,7 @@ public:
     auto async_struct_rpc_request(Args&&... args) 
         -> awaitable<typename trait_helper::rpc_return_type_getter<decltype(Func)>::type>
     {
-        using param_tuple_type = typename trait_helper::function_traits<decltype(Func)>::arguments_tuple;
+        using param_tuple_type = typename trait_helper::function_traits<decltype(Func)>::decayed_arguments_tuple;
         param_tuple_type param_tuple = std::make_tuple(std::forward<Args>(args)...);
         common_define::TCPRequest tcp_request {std::string(trait_helper::struct_rpc_func_path<Func>()), structbuf::serializer::SaveToString(param_tuple)};
         std::string response_str;
@@ -93,11 +105,34 @@ public:
         if (tcp_response.retcode != 0) {
             throw std::runtime_error("errcode" + std::to_string(tcp_response.retcode) + tcp_request.path);
         }
-        using ReturnType = typename trait_helper::rpc_return_type_getter<decltype(Func)>::type;
-        ReturnType function_return_obj;
-        structbuf::deserializer::ParseFromSV(function_return_obj, tcp_response.data);
 
-        co_return function_return_obj;
+        common_define::TCPResponse::RespnseData rsp_data;
+        structbuf::deserializer::ParseFromSV(rsp_data, tcp_response.data);
+        if constexpr (trait_helper::is_func_containes_reference_param<decltype(Func)>()) {
+            structbuf::deserializer::ParseFromSV(param_tuple, rsp_data.params);
+            tupleAssign(param_tuple, args...);
+        }
+        
+        using ReturnType = typename trait_helper::rpc_return_type_getter<decltype(Func)>::type;
+        if constexpr (!std::is_same_v<ReturnType, void>) {
+            ReturnType function_return_obj;
+            structbuf::deserializer::ParseFromSV(function_return_obj, rsp_data.ret);
+            co_return function_return_obj;
+        } else {
+            co_return;
+        }
+    }
+
+private:
+    template <typename Tuple, std::size_t... Indices, typename... Args>
+    void tupleAssignImpl(const Tuple& tuple, std::index_sequence<Indices...>, Args&... args) {
+        ((args = std::get<Indices>(tuple)), ...);
+    }
+
+    template <typename... TupleArgs, typename... Args>
+    void tupleAssign(const std::tuple<TupleArgs...>& tuple, Args&... args) {
+        static_assert(sizeof...(TupleArgs) == sizeof...(Args), "Number of elements must match!");
+        tupleAssignImpl(tuple, std::index_sequence_for<TupleArgs...>{}, args...);
     }
 };
 

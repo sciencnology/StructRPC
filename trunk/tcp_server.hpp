@@ -70,12 +70,12 @@ private:
         if (coroutine_path_iter != process_coroutine_map.end())
         {
             auto& func = coroutine_path_iter->second;
-            tcp_response.data = co_await func(tcp_request.data);
+            tcp_response.data = co_await func(tcp_request.params);
         } else {
             auto func_path_iter = process_function_map.find(tcp_request.path);
             if (func_path_iter != process_function_map.end()) {
                 auto& func = func_path_iter->second;
-                tcp_response.data = func(tcp_request.data);
+                tcp_response.data = func(tcp_request.params);
             } else {
                 tcp_response.retcode = static_cast<int32_t>(common_define::RetCode::RET_NOT_FOUND);
             }

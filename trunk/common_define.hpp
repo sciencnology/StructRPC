@@ -40,7 +40,7 @@ namespace struct_rpc
         struct TCPRequest
         {
             std::string path;
-            std::string data;
+            std::string params;
         };
 
         /**
@@ -51,7 +51,12 @@ namespace struct_rpc
         struct TCPResponse
         {
             int32_t retcode = 0;
-            std::string data;
+            struct RespnseData
+            {
+                std::string params;
+                std::string ret;
+            };
+            std::string data;   // serialized RespnseData
         };
 
     
@@ -66,15 +71,26 @@ namespace struct_rpc
         {
             typename trait_helper::function_traits<decltype(Func)>::arguments_tuple input_struct;
             structbuf::deserializer::ParseFromSV(input_struct, input);
+            using ReturnType = typename trait_helper::function_traits<decltype(Func)>::return_type;
+            TCPResponse::RespnseData rsp_data;
+
             if constexpr (trait_helper::is_member_function<decltype(Func)>) {
                 using class_type = typename trait_helper::function_traits<decltype(Func)>::class_type;
                 static_assert(!std::is_base_of_v<util::ThreadLocalSingleton<class_type>, class_type>, "you cannot use coroutine with ThreadLocalSingleton");
-                auto ret = co_await std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
-                co_return structbuf::serializer::SaveToString(ret);
+                if constexpr (std::is_same_v<ReturnType, void>) {
+                    co_await std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
+                } else {
+                    rsp_data.ret = structbuf::serializer::SaveToString(co_await std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct));
+                }
             } else {
-                auto ret = co_await std::apply(Func, input_struct);
-                co_return structbuf::serializer::SaveToString(ret);
+                if constexpr (std::is_same_v<ReturnType, void>) {
+                    co_await std::apply(Func, input_struct);
+                } else {
+                    rsp_data.ret = structbuf::serializer::SaveToString(co_await std::apply(Func, input_struct));
+                }
             }
+            rsp_data.params = structbuf::serializer::SaveToString(input_struct);
+            co_return structbuf::serializer::SaveToString(rsp_data);
         }
 
         /**
@@ -87,19 +103,31 @@ namespace struct_rpc
         inline auto CommonFuncTemplate(std::string_view input) -> std::string
         {
             // step 1. 提取函数的输入参数类型对应的tuple，并按照对应类型解析输入参数
-            typename trait_helper::function_traits<decltype(Func)>::arguments_tuple input_struct;
+            typename trait_helper::function_traits<decltype(Func)>::decayed_arguments_tuple input_struct;
             structbuf::deserializer::ParseFromSV(input_struct, input);
+            using ReturnType = typename trait_helper::function_traits<decltype(Func)>::return_type;
 
+            TCPResponse::RespnseData rsp_data;
             // step 2. 使用std::apply将上面得到的tuple展开并传递给处理函数，返回序列化后的返回结果
             if constexpr (trait_helper::is_member_function<decltype(Func)>) {
                 // note: 如果是成员函数，需要首先将对应的类对象绑定到第一个参数
                 using class_type = typename trait_helper::function_traits<decltype(Func)>::class_type;
-                auto ret = std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
-                return structbuf::serializer::SaveToString(ret);
+                if constexpr (std::is_same_v<ReturnType, void>) {
+                    std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct);
+                } else {
+                    rsp_data.ret = structbuf::serializer::SaveToString(std::apply(std::bind_front(Func, &class_type::getInstance()), input_struct));
+                }
+                
             } else {
-                auto ret = std::apply(Func, input_struct);
-                return structbuf::serializer::SaveToString(ret);
+                if constexpr (std::is_same_v<ReturnType, void>) {
+                    std::apply(Func, input_struct);
+                } else {
+                    rsp_data.ret = structbuf::serializer::SaveToString(std::apply(Func, input_struct));
+                }
             }
+
+            rsp_data.params = structbuf::serializer::SaveToString(input_struct);
+            return structbuf::serializer::SaveToString(rsp_data);
         }
     }
 }

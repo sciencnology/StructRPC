@@ -22,6 +22,13 @@ int32_t add_three(int32_t a, int32_t b, int c) {
 }
 
 /**
+ * 支持按引用方式传递参数，及void返回类型。函数对引用参数的修改也会同步到请求端。
+*/
+inline void add_ref(int a, int b, int& c) {
+    c = a + b;
+}
+
+/**
  * 支持模板函数，但是要注意不同模板实例的函数签名类型必须不同
 */
 template<typename T>
@@ -48,10 +55,9 @@ awaitable<int> wait3s_and_echo(int i) {
 }
 
 /**
- * 函数参数和返回值支持自定义结构体，需要使用DEFINE_STRUCT_BUFFER_MEMBERS宏注册成StructBuffer可解析的形式
+ * 函数参数和返回值支持自定义结构体
 */
 struct CombinedStruct {
-    DEFINE_STRUCT_BUFFER_MEMBERS(str_member, int_member);
     std::string str_member;
     uint32_t int_member;
 };
@@ -62,13 +68,6 @@ inline CombinedStruct free_add_combined(CombinedStruct a, CombinedStruct b) {
 /** 支持函数重载，但是注册和调用时需要使用特殊语法，本处不做展示
 * int32_t echo(int32_t input) {
 *     return input;
-* }
-*/
-
-/**
-* 只支持按值传参并按值返回结果，不支持按引用传参和void返回类型，例如下面的函数是不支持的：
-* void add_ref_args(int a, int b, int& c) {
-*    c = a + b;
 * }
 */
 

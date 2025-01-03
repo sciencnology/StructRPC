@@ -17,11 +17,12 @@ int main()
         ExampleRPCNamespace::add,   // 命名空间下的函数
         free_add_combined , // 注册自定义类型作为参数和返回值的函数
         &ExampleRPCClass::add,  // 注册类的成员函数，注意取成员函数指针时必须显式加&
-        &ExampleRPCClass::static_add   // 注册静态成员函数
+        &ExampleRPCClass::static_add,  // 注册静态成员函数
         // addo // 函数名拼写错误，可以在编译期检查并报错
+        add_ref // 注册按引用传参并返回void的函数
         >();
     
-    // run the server loop.
+    // 启动server循环，会阻塞当前线程，并在内部开启多线程异步处理请求。
     server.Start();
     return 0;
 }

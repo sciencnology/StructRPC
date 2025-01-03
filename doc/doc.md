@@ -76,7 +76,7 @@ int main() {
 
 #### RPC函数归一化注册
 
-用户自定义的RPC函数其类型（参数列表、返回值类型、是否为成员函数等）存在无数种可能，而RPC框架需要将其统一存储到某个容器（比如std::map）中方便根据请求path进行查找。由于C++类型系统的限制，容器中的元素类型必须完全一致，StructRPC采用了类型擦除、函数指针模板参数、Partial Application等技术实现上述归一化注册。
+用户自定义的RPC函数其类型（参数列表、返回值类型、是否为成员函数等）存在无数种可能，而RPC框架需要将其统一存储到某个容器（比如std::map）中方便根据请求path进行查找。由于C++类型系统的限制，容器中的元素类型必须完全一致，`StructRPC`采用了类型擦除、函数指针模板参数、Partial Application等技术实现上述归一化注册。
 
 1. **统一函数签名**
 
@@ -105,8 +105,8 @@ int main() {
 
 1. 提取出Func的参数类型列表，定义一个元素类型与之相同的std::tuple，并通过完美转发使用传入的args...构造该tuple。此时如果传入参数的数量或者类型不正确会编译失败。
 2. 使用`struct_rpc_func_path`获取Func对应的RPC请求路径，同时使用StructBuffer将第一步得到的tuple序列化为std::string，将二者组合成TCPRequest对象
-3. 将第二部得到的request对象序列化成std::string并通过TCP传输给server，等待server的响应
-4. 提取出Func的返回类型，使用StructBuffer从server响应信息中解析函数返回结果，并返回给调用者。
+3. 将第二步得到的request对象序列化成std::string并通过TCP传输给server，等待server的响应
+4. 提取出Func的返回类型，使用StructBuffer从server响应信息中解析函数返回结果。如果函数存在引用类型的参数，则从响应信息中提取出server返回的函数参数并赋值给输入参数，随后返回给调用者。
 
 得益于模板，`sync_struct_rpc_request` 实际上会在编译期对每个远程调用函数生成一份独有的实例，其参数和返回值类型与远程调用函数完全匹配。
 
@@ -121,7 +121,7 @@ int main() {
 
 1. 读取TCP请求的头部，解析出该次请求总长度信息后读取整个TCP请求包，并使用StructBuffer将其解析成TCPRequest结构体。
 2. 根据结构体中的path字段查找对应的RPC函数，利用`function_traits`提取出函数的参数和返回值特征，并根据参数类型列表反序列化TCPRequest结构体中打包的参数字段。
-3. 利用std::apply将参数tuple解包并传递给预先注册的RPC处理函数调用，将返回值序列化成TCPRespose结构体，并使用StructBuffer序列化成二进制流后写回socket。
+3. 利用std::apply将参数tuple解包并传递给预先注册的RPC处理函数调用，将返回值和调用后的函数参数序列化成TCPRespose结构体，并使用StructBuffer序列化成二进制流后写回socket。
 
 #### TCPServer模型
 
